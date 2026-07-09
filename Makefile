@@ -1,39 +1,48 @@
-# Makefile — dumalloc build system
-#
-# Targets:
-#   all      — build the test driver (default)
-#   lib      — build a static library (libdumalloc.a)
-#   clean    — remove all build artefacts
-
 CC      := gcc
 CFLAGS  := -std=c11 -Wall -Wextra -Wpedantic -g
 AR      := ar
 ARFLAGS := rcs
 
-TARGET  := dumalloc
-LIB     := libdumalloc.a
-SRCS    := heap.c main.c
-OBJS    := $(SRCS:.c=.o)
-LIB_OBJ := heap.o
+SRCDIR  := src
+INCDIR  := include
+BUILDDIR := build
+BINDIR  := bin
 
-.PHONY: all lib clean
+TARGET  := $(BINDIR)/dumalloc
+LIB     := $(BINDIR)/libdumalloc.a
 
-## Build the test driver
+SRCS    := $(SRCDIR)/heap.c $(SRCDIR)/main.c
+OBJS    := $(patsubst $(SRCDIR)/%.c, $(BUILDDIR)/%.o, $(SRCS))
+LIB_OBJ := $(BUILDDIR)/heap.o
+
+.PHONY: all lib test bench clean
+
 all: $(TARGET)
 
-$(TARGET): $(OBJS)
+$(TARGET): $(OBJS) | $(BINDIR)
 	$(CC) $(CFLAGS) -o $@ $^
 
-## Build a static library containing just the allocator
 lib: $(LIB)
 
-$(LIB): $(LIB_OBJ)
+$(LIB): $(LIB_OBJ) | $(BINDIR)
 	$(AR) $(ARFLAGS) $@ $^
 
-## Pattern rule: compile a .c file into a .o file
-%.o: %.c heap.h
-	$(CC) $(CFLAGS) -c -o $@ $<
+$(BUILDDIR)/%.o: $(SRCDIR)/%.c | $(BUILDDIR)
+	$(CC) $(CFLAGS) -I$(INCDIR) -c -o $@ $<
 
-## Remove all build artefacts
+$(BUILDDIR):
+	mkdir -p $(BUILDDIR)
+
+$(BINDIR):
+	mkdir -p $(BINDIR)
+
+test:
+	$(MAKE) -C tests run
+
+bench:
+	$(MAKE) -C benchmarks run
+
 clean:
-	rm -f $(OBJS) $(TARGET) $(LIB)
+	rm -rf $(BUILDDIR) $(BINDIR)
+	$(MAKE) -C tests clean
+	$(MAKE) -C benchmarks clean
