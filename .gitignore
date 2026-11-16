@@ -1,0 +1,7 @@
+# Build output
+bin/
+build/
+tests/bin/
+tests/build/
+benchmarks/bin/
+benchmarks/build/
